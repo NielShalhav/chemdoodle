@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Molecule Drawing Tool</title>
+    <title>Draw Methanol with Explicit Atoms and Bonds</title>
     <!-- Load Kekule.js -->
     <script src="https://unpkg.com/kekule/dist/kekule.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
@@ -45,8 +45,9 @@
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize Kekule.js molecule composer with simplified settings
+        // Initialize Kekule.js molecule composer with explicit atom and bond settings
         const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'), {
+            allowImplicitHydrogens: false, // Force explicit hydrogens
             chemObjLoadedCallback: function () {
                 console.log('Sketcher initialized with custom settings.');
             }
@@ -55,14 +56,16 @@
         // Set the dimensions of the sketcher
         composer.setDimension('600px', '400px');
 
-        // Simplify the interface: disable implied hydrogens and carbons
+        // Force explicit carbon and hydrogen display
         composer.getEditorConfigs().setConfigs({
             enableImplicitHydrogens: false, // Disable implied hydrogens
+            enableExplicitValence: true, // Display explicit valence
             enableAtomStereoParity: false, // Disable stereochemistry for atoms
             enableBondStereo: false, // Disable stereochemistry for bonds
+            displayAtomExplicitly: true, // Force display of carbon and hydrogen atoms
         });
 
-        // Expected SMILES for methanol with explicit atoms and bonds
+        // Expected SMILES for methanol with explicit hydrogens and carbons
         const expectedSmiles = "[H]C([H])([H])O[H]"; // Methanol explicitly written with hydrogens
 
         // Event listener for the "Check Formula" button
