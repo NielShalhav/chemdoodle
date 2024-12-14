@@ -14,6 +14,7 @@
             border: 1px solid black;
             display: block;
             margin: 0 auto;
+            cursor: pointer;
         }
         .controls {
             margin: 20px 0;
@@ -23,6 +24,10 @@
             padding: 10px 15px;
             font-size: 16px;
             cursor: pointer;
+        }
+        .controls button.active {
+            background-color: #4CAF50;
+            color: white;
         }
         .atom-selector {
             margin: 20px 0;
@@ -68,6 +73,9 @@
         let atoms = []; // Store atom positions
         let bonds = []; // Store bonds
 
+        // Teacher-defined SMILES input for validation
+        const teacherSMILES = "CO"; // Replace this SMILES string with the correct answer.
+
         // Atom radius
         const atomRadius = 15;
 
@@ -75,12 +83,27 @@
         document.getElementById('atom').addEventListener('change', (e) => {
             selectedAtom = e.target.value;
             drawingMode = 'atom';
+            setActiveButton(null);
         });
-        document.getElementById('singleBond').addEventListener('click', () => drawingMode = 'single');
-        document.getElementById('doubleBond').addEventListener('click', () => drawingMode = 'double');
-        document.getElementById('tripleBond').addEventListener('click', () => drawingMode = 'triple');
-        document.getElementById('eraser').addEventListener('click', () => drawingMode = 'erase');
+
+        document.getElementById('singleBond').addEventListener('click', () => activateBondMode('single'));
+        document.getElementById('doubleBond').addEventListener('click', () => activateBondMode('double'));
+        document.getElementById('tripleBond').addEventListener('click', () => activateBondMode('triple'));
+        document.getElementById('eraser').addEventListener('click', () => activateBondMode('erase'));
         document.getElementById('checkButton').addEventListener('click', checkMolecule);
+
+        // Activate bond mode and highlight the selected button
+        function activateBondMode(mode) {
+            drawingMode = mode;
+            setActiveButton(mode);
+        }
+
+        function setActiveButton(mode) {
+            document.querySelectorAll('.controls button').forEach(button => button.classList.remove('active'));
+            if (mode) {
+                document.getElementById(`${mode}Bond`).classList.add('active');
+            }
+        }
 
         // Event listener for canvas interaction
         canvas.addEventListener('click', (e) => {
@@ -92,7 +115,7 @@
             } else if (drawingMode === 'erase') {
                 eraseElement(x, y);
             } else {
-                addBond(x, y, drawingMode);
+                addBondToAtom(x, y, drawingMode);
             }
 
             drawCanvas();
@@ -100,18 +123,27 @@
 
         // Add an atom
         function addAtom(x, y, element) {
-            atoms.push({ x, y, element });
+            atoms.push({ x, y, element, bonds: [] });
         }
 
-        // Add a bond
-        function addBond(x, y, type) {
-            const atom1 = findAtomAtPosition(x, y);
-            if (!atom1) return;
+        // Add a bond to an atom
+        function addBondToAtom(x, y, type) {
+            const atom = findAtomAtPosition(x, y);
+            if (!atom) return;
 
-            const atom2 = findNearestAtom(atom1);
-            if (!atom2) return;
+            // Calculate positions for the bond
+            const angle = Math.PI * (atom.bonds.length / 2); // Maximize bond angles
+            const bondX = atom.x + Math.cos(angle) * 50;
+            const bondY = atom.y + Math.sin(angle) * 50;
 
-            bonds.push({ atom1, atom2, type });
+            // Add a new atom at the bond's end
+            const newAtom = { x: bondX, y: bondY, element: 'C', bonds: [] };
+            atoms.push(newAtom);
+
+            // Link both atoms with the bond
+            atom.bonds.push({ atom: newAtom, type });
+            newAtom.bonds.push({ atom, type });
+            bonds.push({ atom1: atom, atom2: newAtom, type });
         }
 
         // Erase an element
@@ -128,24 +160,6 @@
         // Find atom at a given position
         function findAtomAtPosition(x, y) {
             return atoms.find(atom => isWithinRadius(atom.x, atom.y, x, y, atomRadius));
-        }
-
-        // Find the nearest atom to a given atom
-        function findNearestAtom(atom) {
-            let nearest = null;
-            let minDistance = Infinity;
-
-            atoms.forEach(otherAtom => {
-                if (otherAtom !== atom) {
-                    const distance = Math.sqrt((atom.x - otherAtom.x) ** 2 + (atom.y - otherAtom.y) ** 2);
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        nearest = otherAtom;
-                    }
-                }
-            });
-
-            return minDistance <= 100 ? nearest : null;
         }
 
         // Check if two points are within a certain radius
@@ -183,12 +197,18 @@
             });
         }
 
-        // Validate the molecule
+        // Convert molecule to SMILES and validate
         function checkMolecule() {
             const resultMessage = document.getElementById('resultMessage');
-            // Placeholder: Replace with actual validation logic
-            resultMessage.textContent = "Molecule validation is not yet implemented.";
-            resultMessage.style.color = "blue";
+            // Placeholder: Replace with real SMILES conversion logic
+            const studentSMILES = "CO"; // Replace this with logic to generate SMILES from atoms/bonds.
+            if (studentSMILES === teacherSMILES) {
+                resultMessage.textContent = "Correct! The molecule matches the teacher's input.";
+                resultMessage.style.color = "green";
+            } else {
+                resultMessage.textContent = "Incorrect. Please revise the molecule.";
+                resultMessage.style.color = "red";
+            }
         }
 
         drawCanvas();
