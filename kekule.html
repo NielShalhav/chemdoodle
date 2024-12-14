@@ -223,10 +223,36 @@
             });
         }
 
-        // Convert molecule to SMILES and validate
+        // Generate SMILES (Improved logic)
+        function generateSMILES() {
+            const visited = new Set();
+            const smiles = [];
+
+            function dfs(atom) {
+                if (!atom || visited.has(atom)) return;
+                visited.add(atom);
+
+                smiles.push(atom.element);
+
+                atom.bonds.forEach(bond => {
+                    const bondSymbol = bond.type === 'single' ? '-' : bond.type === 'double' ? '=' : '#';
+                    if (!visited.has(bond.atom)) {
+                        smiles.push(bondSymbol);
+                        dfs(bond.atom);
+                    }
+                });
+            }
+
+            if (atoms.length) dfs(atoms[0]); // Start from the first atom
+            return smiles.join('');
+        }
+
+        // Validate molecule
         function checkMolecule() {
             const resultMessage = document.getElementById('resultMessage');
             const studentSMILES = generateSMILES();
+            console.log("Generated SMILES:", studentSMILES);
+
             if (studentSMILES === teacherSMILES) {
                 resultMessage.textContent = "Correct! The molecule matches the teacher's input.";
                 resultMessage.style.color = "green";
@@ -234,11 +260,6 @@
                 resultMessage.textContent = "Incorrect. Please revise the molecule.";
                 resultMessage.style.color = "red";
             }
-        }
-
-        // Generate SMILES (Placeholder logic; implement a real algorithm here)
-        function generateSMILES() {
-            return atoms.map(atom => atom.element).join('');
         }
 
         drawCanvas();
