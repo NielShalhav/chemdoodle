@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw Methanol - MarvinJS</title>
+    <!-- MarvinJS Launcher -->
+    <script src="https://marvinjs-demo.chemaxon.com/js/marvinjslauncher.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #marvin {
+            margin: 20px auto;
+            width: 600px;
+            height: 400px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #resultMessage {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Draw the Structural Formula for Methanol (CH₃OH)</h2>
+    <div id="marvin"></div>
+    <button id="checkButton">Check Formula</button>
+    <p id="resultMessage"></p>
+
+    <script>
+        // Initialize MarvinJS
+        MarvinJSUtil.getEditor("marvin").then(function (sketcherInstance) {
+            // Expected SMILES string for methanol
+            const expectedSmiles = "CO"; // Methanol's SMILES
+
+            // Event listener for the "Check Formula" button
+            document.getElementById("checkButton").addEventListener("click", function () {
+                // Export the drawn structure as SMILES
+                sketcherInstance.exportStructure("smiles").then(function (drawnSmiles) {
+                    const resultMessage = document.getElementById("resultMessage");
+
+                    // Compare the drawn structure with the expected SMILES
+                    if (drawnSmiles.trim() === expectedSmiles) {
+                        resultMessage.textContent = "Correct! You drew methanol.";
+                        resultMessage.style.color = "green";
+                    } else {
+                        resultMessage.textContent = `Incorrect. The correct formula is methanol (CH₃OH).`;
+                        resultMessage.style.color = "red";
+                    }
+                }).catch(function (error) {
+                    console.error("Error exporting structure:", error);
+                });
+            });
+        }).catch(function (error) {
+            console.error("Error initializing MarvinJS:", error);
+        });
+    </script>
+</body>
+</html>
