@@ -46,10 +46,10 @@
 
     <script>
         // Initialize Kekule.js molecule composer
-        const sketcher = new Kekule.Editor.MoleculeComposer(document.getElementById('sketcher'));
-        sketcher.setDimension('600px', '400px');
+        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'));
+        composer.setDimension('600px', '400px');
 
-        // Expected SMILES for methanol with explicit atoms and bonds
+        // Expected SMILES for methanol with explicit hydrogens
         const expectedSmiles = "[H]C([H])([H])O[H]";
 
         // Event listener for the "Check Formula" button
@@ -58,7 +58,7 @@
 
             try {
                 // Get the drawn molecule as SMILES
-                const chemObj = sketcher.getChemObj();
+                const chemObj = composer.getChemObj();
                 const drawnSmiles = Kekule.IO.saveFormatData(chemObj, 'smi');
 
                 // Compare the drawn SMILES to the expected SMILES
