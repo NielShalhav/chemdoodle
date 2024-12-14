@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teken een CH4O molecuul</title>
+    <title>Teken een CH<sub>4</sub>O molecuul</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,7 +39,7 @@
     </style>
 </head>
 <body>
-    <h2>Teken een CH4O molecuul</h2>
+    <h2>Teken een CH<sub>4</sub>O molecuul</h2>
     <canvas id="canvas" width="800" height="600"></canvas>
     <div class="controls">
         <button id="singleBond" data-mode="single">Enkele binding</button>
@@ -75,7 +75,7 @@
                 { atom1: 'C', atom2: 'H', type: 'single' },
                 { atom1: 'C', atom2: 'H', type: 'single' },
                 { atom1: 'C', atom2: 'H', type: 'single' },
-                { atom1: 'O', atom2: 'H', type: 'single' },
+                { atom1: 'O', atom2: 'H', type: 'single' }
             ]
         };
 
@@ -136,6 +136,8 @@
             const angle = (Math.PI / 2) * (atom1.bonds.length % 4); // Distribute bonds evenly
             const bondX = atom1.x + Math.cos(angle) * 50;
             const bondY = atom1.y + Math.sin(angle) * 50;
+
+            if (findAtom(bondX, bondY)) return; // Prevent overlapping atoms
 
             const newAtom = { x: bondX, y: bondY, element: '', bonds: [] };
             atoms.push(newAtom);
