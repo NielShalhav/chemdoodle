@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Molecule Editor</title>
+    <script src="https://unpkg.com/openchemlib/dist/openchemlib-full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -78,6 +79,9 @@
         // Atom radius
         const atomRadius = 15;
 
+        // Initialize OpenChemLib molecule
+        const molecule = new OCL.Molecule();
+
         // Event listeners for controls
         document.getElementById('atom').addEventListener('change', (e) => {
             selectedAtom = e.target.value;
@@ -110,55 +114,34 @@
             const y = e.offsetY;
 
             if (drawingMode === 'atom') {
-                addOrReplaceAtom(x, y, selectedAtom);
+                addAtomToMolecule(x, y, selectedAtom);
             } else if (drawingMode === 'erase') {
                 eraseElement(x, y);
             } else {
-                addBondToAtom(x, y, drawingMode);
+                addBondToMolecule(x, y, drawingMode);
             }
 
             drawCanvas();
         });
 
-        // Add or replace an atom
-        function addOrReplaceAtom(x, y, element) {
-            const atom = findAtomAtPosition(x, y);
-            if (atom) {
-                atom.element = element; // Replace the placeholder or existing atom
-            } else {
-                atoms.push({ x, y, element, bonds: [] });
-            }
+        // Add an atom to the molecule
+        function addAtomToMolecule(x, y, element) {
+            const atomIndex = molecule.addAtom(element);
+            atoms.push({ x, y, element, index: atomIndex });
         }
 
-        // Add a bond to an atom
-        function addBondToAtom(x, y, type) {
-            const atom = findAtomAtPosition(x, y);
-            if (!atom) return;
+        // Add a bond between two atoms
+        function addBondToMolecule(x, y, type) {
+            const atom1 = findAtomAtPosition(x, y);
+            if (!atom1) return;
 
-            // Calculate positions for the bond
-            const angle = Math.PI * (atom.bonds.length / 2); // Maximize bond angles
-            const bondX = atom.x + Math.cos(angle) * 50;
-            const bondY = atom.y + Math.sin(angle) * 50;
+            const atom2 = findNearestAtom(atom1.x, atom1.y);
+            if (!atom2) return;
 
-            // Reserve space for the new atom
-            const newAtom = { x: bondX, y: bondY, element: '', bonds: [] };
-            atoms.push(newAtom);
+            const bondType = type === 'single' ? 1 : type === 'double' ? 2 : 3;
+            molecule.addBond(atom1.index, atom2.index, bondType);
 
-            // Link both atoms with the bond
-            atom.bonds.push({ atom: newAtom, type });
-            newAtom.bonds.push({ atom, type });
-            bonds.push({ atom1: atom, atom2: newAtom, type });
-        }
-
-        // Erase an element
-        function eraseElement(x, y) {
-            atoms = atoms.filter(atom => !isWithinRadius(atom.x, atom.y, x, y, atomRadius));
-            bonds = bonds.filter(bond => {
-                return !(
-                    isWithinRadius(bond.atom1.x, bond.atom1.y, x, y, atomRadius) ||
-                    isWithinRadius(bond.atom2.x, bond.atom2.y, x, y, atomRadius)
-                );
-            });
+            bonds.push({ atom1, atom2, type });
         }
 
         // Find atom at a given position
@@ -166,9 +149,35 @@
             return atoms.find(atom => isWithinRadius(atom.x, atom.y, x, y, atomRadius));
         }
 
+        // Find the nearest atom to a given position
+        function findNearestAtom(x, y) {
+            let minDistance = Infinity;
+            let nearestAtom = null;
+
+            for (const atom of atoms) {
+                const distance = Math.sqrt((x - atom.x) ** 2 + (y - atom.y) ** 2);
+                if (distance < minDistance && distance <= 100) {
+                    minDistance = distance;
+                    nearestAtom = atom;
+                }
+            }
+
+            return nearestAtom;
+        }
+
         // Check if two points are within a certain radius
         function isWithinRadius(x1, y1, x2, y2, radius) {
             return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) <= radius;
+        }
+
+        // Erase an element
+        function eraseElement(x, y) {
+            const atom = findAtomAtPosition(x, y);
+            if (atom) {
+                molecule.deleteAtom(atom.index);
+                atoms = atoms.filter(a => a.index !== atom.index);
+                bonds = bonds.filter(b => b.atom1 !== atom && b.atom2 !== atom);
+            }
         }
 
         // Draw the canvas
@@ -177,87 +186,40 @@
 
             // Draw bonds
             bonds.forEach(bond => {
-                const { atom1, atom2, type } = bond;
-                const dx = atom2.x - atom1.x;
-                const dy = atom2.y - atom1.y;
-                const angle = Math.atan2(dy, dx);
-
                 ctx.beginPath();
-                ctx.moveTo(atom1.x, atom1.y);
-                ctx.lineTo(atom2.x, atom2.y);
-                ctx.lineWidth = type === 'single' ? 2 : type === 'double' ? 4 : 6;
+                ctx.moveTo(bond.atom1.x, bond.atom1.y);
+                ctx.lineTo(bond.atom2.x, bond.atom2.y);
+                ctx.lineWidth = bond.type === 'single' ? 2 : bond.type === 'double' ? 4 : 6;
                 ctx.strokeStyle = 'black';
                 ctx.stroke();
-
-                // For double and triple bonds, draw parallel lines
-                if (type === 'double' || type === 'triple') {
-                    const offset = type === 'double' ? 5 : 10;
-                    ctx.beginPath();
-                    ctx.moveTo(atom1.x + Math.sin(angle) * offset, atom1.y - Math.cos(angle) * offset);
-                    ctx.lineTo(atom2.x + Math.sin(angle) * offset, atom2.y - Math.cos(angle) * offset);
-                    ctx.stroke();
-                    if (type === 'triple') {
-                        ctx.beginPath();
-                        ctx.moveTo(atom1.x - Math.sin(angle) * offset, atom1.y + Math.cos(angle) * offset);
-                        ctx.lineTo(atom2.x - Math.sin(angle) * offset, atom2.y + Math.cos(angle) * offset);
-                        ctx.stroke();
-                    }
-                }
             });
 
             // Draw atoms
             atoms.forEach(atom => {
                 ctx.beginPath();
                 ctx.arc(atom.x, atom.y, atomRadius, 0, Math.PI * 2);
-                ctx.fillStyle = atom.element ? 'white' : 'lightgray';
+                ctx.fillStyle = 'white';
                 ctx.fill();
                 ctx.strokeStyle = 'black';
                 ctx.stroke();
-                if (atom.element) {
-                    ctx.fillStyle = 'black';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.font = '16px Arial';
-                    ctx.fillText(atom.element, atom.x, atom.y);
-                }
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '16px Arial';
+                ctx.fillText(atom.element, atom.x, atom.y);
             });
         }
 
-        // Generate SMILES (Improved logic)
-        function generateSMILES() {
-            const visited = new Set();
-            const smiles = [];
-
-            function dfs(atom) {
-                if (!atom || visited.has(atom)) return;
-                visited.add(atom);
-
-                smiles.push(atom.element);
-
-                atom.bonds.forEach(bond => {
-                    const bondSymbol = bond.type === 'single' ? '-' : bond.type === 'double' ? '=' : '#';
-                    if (!visited.has(bond.atom)) {
-                        smiles.push(bondSymbol);
-                        dfs(bond.atom);
-                    }
-                });
-            }
-
-            if (atoms.length) dfs(atoms[0]); // Start from the first atom
-            return smiles.join('');
-        }
-
-        // Validate molecule
+        // Check molecule validity
         function checkMolecule() {
+            const studentSMILES = molecule.toSmiles();
             const resultMessage = document.getElementById('resultMessage');
-            const studentSMILES = generateSMILES();
-            console.log("Generated SMILES:", studentSMILES);
 
             if (studentSMILES === teacherSMILES) {
                 resultMessage.textContent = "Correct! The molecule matches the teacher's input.";
                 resultMessage.style.color = "green";
             } else {
-                resultMessage.textContent = "Incorrect. Please revise the molecule.";
+                resultMessage.textContent = `Incorrect. Your SMILES: ${studentSMILES}`;
                 resultMessage.style.color = "red";
             }
         }
