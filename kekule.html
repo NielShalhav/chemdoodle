@@ -3,17 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draw Methanol with Explicit Atoms and Bonds</title>
-    <!-- Load Kekule.js -->
-    <script src="https://unpkg.com/kekule/dist/kekule.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
+    <title>Draw Methanol</title>
+    <!-- Load OpenChemLib JS -->
+    <script src="https://unpkg.com/openchemlib/full.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
         }
-        #sketcher {
+        #editorContainer {
             margin: 0 auto;
             width: 600px;
             height: 400px;
@@ -39,34 +38,36 @@
     </style>
 </head>
 <body>
-    <h2>Draw Methanol with Explicit Atoms and Bonds</h2>
-    <div id="sketcher"></div>
+    <h2>Draw Methanol (CH₃OH)</h2>
+    <div id="editorContainer"></div>
     <button id="checkButton">Check Formula</button>
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize Kekule.js molecule composer
-        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'));
-        composer.setDimension('600px', '400px');
+        // Initialize OpenChemLib molecule editor
+        const editor = new OCL.StructureEditor('#editorContainer', {
+            width: 600,
+            height: 400
+        });
 
-        // Expected SMILES for methanol with explicit hydrogens
-        const expectedSmiles = "[H]C([H])([H])O[H]";
+        // Expected SMILES for methanol
+        const expectedSmiles = "CO";
 
-        // Event listener for the "Check Formula" button
+        // Add event listener for the "Check Formula" button
         document.getElementById("checkButton").addEventListener("click", function () {
             const resultMessage = document.getElementById("resultMessage");
 
             try {
                 // Get the drawn molecule as SMILES
-                const chemObj = composer.getChemObj();
-                const drawnSmiles = Kekule.IO.saveFormatData(chemObj, 'smi');
+                const mol = editor.getMolecule();
+                const drawnSmiles = mol.toSmiles();
 
                 // Compare the drawn SMILES to the expected SMILES
                 if (drawnSmiles.trim() === expectedSmiles) {
-                    resultMessage.textContent = "Correct! You drew methanol explicitly.";
+                    resultMessage.textContent = "Correct! You drew methanol.";
                     resultMessage.style.color = "green";
                 } else {
-                    resultMessage.textContent = "Incorrect. Ensure all atoms and bonds are explicit!";
+                    resultMessage.textContent = "Incorrect. Ensure the structure matches CH₃OH.";
                     resultMessage.style.color = "red";
                 }
             } catch (error) {
