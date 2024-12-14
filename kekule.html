@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draw Methanol with Kekule.js</title>
-    <!-- Load Kekule.js from CDN -->
+    <title>Simple Molecule Drawing Tool</title>
+    <!-- Load Kekule.js -->
     <script src="https://unpkg.com/kekule/dist/kekule.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
     <style>
@@ -39,21 +39,34 @@
     </style>
 </head>
 <body>
-    <h2>Draw the Structural Formula for Methanol (CH₃OH)</h2>
+    <h2>Draw Methanol with Explicit Bonds and Atoms</h2>
     <div id="sketcher"></div>
     <button id="checkButton">Check Formula</button>
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize the Kekule.js sketcher
-        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'));
+        // Initialize Kekule.js molecule composer with simplified settings
+        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'), {
+            chemObjLoadedCallback: function () {
+                console.log('Sketcher initialized with custom settings.');
+            }
+        });
+
+        // Set the dimensions of the sketcher
         composer.setDimension('600px', '400px');
 
-        // Expected SMILES string for methanol
-        const expectedSmiles = "CO";
+        // Simplify the interface: disable implied hydrogens and carbons
+        composer.getEditorConfigs().setConfigs({
+            enableImplicitHydrogens: false, // Disable implied hydrogens
+            enableAtomStereoParity: false, // Disable stereochemistry for atoms
+            enableBondStereo: false, // Disable stereochemistry for bonds
+        });
 
-        // Add event listener for the "Check Formula" button
-        document.getElementById("checkButton").addEventListener("click", async function () {
+        // Expected SMILES for methanol with explicit atoms and bonds
+        const expectedSmiles = "[H]C([H])([H])O[H]"; // Methanol explicitly written with hydrogens
+
+        // Event listener for the "Check Formula" button
+        document.getElementById("checkButton").addEventListener("click", function () {
             const resultMessage = document.getElementById("resultMessage");
 
             try {
@@ -63,10 +76,10 @@
 
                 // Compare the drawn SMILES to the expected SMILES
                 if (drawnSmiles.trim() === expectedSmiles) {
-                    resultMessage.textContent = "Correct! You drew methanol.";
+                    resultMessage.textContent = "Correct! You drew methanol explicitly.";
                     resultMessage.style.color = "green";
                 } else {
-                    resultMessage.textContent = `Incorrect. Try again!`;
+                    resultMessage.textContent = `Incorrect. Ensure all atoms and bonds are explicit!`;
                     resultMessage.style.color = "red";
                 }
             } catch (error) {
