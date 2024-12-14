@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Molecule Editor</title>
+    <title>Molecule Editor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,13 +39,13 @@
     </style>
 </head>
 <body>
-    <h2>Simple Molecule Editor</h2>
+    <h2>Molecule Editor</h2>
     <canvas id="canvas" width="800" height="600"></canvas>
     <div class="controls">
-        <button id="singleBond">Single Bond</button>
-        <button id="doubleBond">Double Bond</button>
-        <button id="tripleBond">Triple Bond</button>
-        <button id="eraser">Eraser</button>
+        <button id="singleBond" data-mode="single">Single Bond</button>
+        <button id="doubleBond" data-mode="double">Double Bond</button>
+        <button id="tripleBond" data-mode="triple">Triple Bond</button>
+        <button id="eraser" data-mode="erase">Eraser</button>
         <button id="checkButton">Check Molecule</button>
     </div>
     <div class="atom-selector">
@@ -55,11 +55,6 @@
             <option value="C">C</option>
             <option value="O">O</option>
             <option value="N">N</option>
-            <option value="F">F</option>
-            <option value="Cl">Cl</option>
-            <option value="Br">Br</option>
-            <option value="I">I</option>
-            <option value="S">S</option>
         </select>
     </div>
     <p id="resultMessage"></p>
@@ -67,40 +62,42 @@
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let drawingMode = 'atom'; // Modes: atom, single, double, triple, erase
+        let activeMode = null; // Modes: 'single', 'double', 'triple', 'erase'
         let selectedAtom = 'C';
-        let atoms = []; // Store atom positions
-        let bonds = []; // Store bonds
+        let atoms = [];
+        let bonds = [];
 
-        // Teacher-defined SMILES input for validation
-        const teacherSMILES = "CO"; // Replace this SMILES string with the correct answer.
-
-        // Atom radius
-        const atomRadius = 15;
+        // Teacher-defined correct molecule structure
+        const correctStructure = {
+            atoms: { C: 1, O: 1, H: 4 },
+            bonds: [
+                { atom1: 'C', atom2: 'O', type: 'single' },
+                { atom1: 'C', atom2: 'H', type: 'single' },
+                { atom1: 'C', atom2: 'H', type: 'single' },
+                { atom1: 'C', atom2: 'H', type: 'single' },
+            ]
+        };
 
         // Event listeners for controls
-        document.getElementById('atom').addEventListener('change', (e) => {
-            selectedAtom = e.target.value;
-            drawingMode = 'atom';
-            setActiveButton(null);
+        document.querySelectorAll('.controls button').forEach(button => {
+            button.addEventListener('click', () => toggleMode(button));
         });
 
-        document.getElementById('singleBond').addEventListener('click', () => activateBondMode('single'));
-        document.getElementById('doubleBond').addEventListener('click', () => activateBondMode('double'));
-        document.getElementById('tripleBond').addEventListener('click', () => activateBondMode('triple'));
-        document.getElementById('eraser').addEventListener('click', () => activateBondMode('erase'));
+        document.getElementById('atom').addEventListener('change', (e) => {
+            selectedAtom = e.target.value;
+        });
+
         document.getElementById('checkButton').addEventListener('click', checkMolecule);
 
-        // Activate bond mode and highlight the selected button
-        function activateBondMode(mode) {
-            drawingMode = mode;
-            setActiveButton(mode);
-        }
-
-        function setActiveButton(mode) {
-            document.querySelectorAll('.controls button').forEach(button => button.classList.remove('active'));
-            if (mode) {
-                document.getElementById(`${mode}Bond`).classList.add('active');
+        // Toggle button mode
+        function toggleMode(button) {
+            if (button.classList.contains('active')) {
+                button.classList.remove('active');
+                activeMode = null;
+            } else {
+                document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                activeMode = button.dataset.mode;
             }
         }
 
@@ -109,99 +106,84 @@
             const x = e.offsetX;
             const y = e.offsetY;
 
-            if (drawingMode === 'atom') {
-                addOrReplaceAtom(x, y, selectedAtom);
-            } else if (drawingMode === 'erase') {
+            if (activeMode === null) {
+                addAtom(x, y, selectedAtom);
+            } else if (activeMode === 'erase') {
                 eraseElement(x, y);
             } else {
-                addBondToAtom(x, y, drawingMode);
+                addBond(x, y, activeMode);
             }
 
             drawCanvas();
         });
 
-        // Add or replace an atom
-        function addOrReplaceAtom(x, y, element) {
-            const atom = findAtomAtPosition(x, y);
-            if (atom) {
-                atom.element = element; // Replace the placeholder or existing atom
-            } else {
-                atoms.push({ x, y, element, bonds: [] });
-            }
+        // Add atom
+        function addAtom(x, y, element) {
+            atoms.push({ x, y, element, bonds: [] });
         }
 
-        // Add a bond between two atoms
-        function addBondToAtom(x, y, type) {
-            const atom1 = findAtomAtPosition(x, y);
+        // Add bond
+        function addBond(x, y, type) {
+            const atom1 = findAtom(x, y);
             if (!atom1) return;
 
-            const atom2 = findNearestAtom(atom1.x, atom1.y);
-            if (!atom2) return;
+            const atom2 = findNearestAtom(atom1);
+            if (!atom2 || atom1 === atom2) return;
 
-            bonds.push({
-                atom1,
-                atom2,
-                type: type === 'single' ? 1 : type === 'double' ? 2 : 3,
-            });
-
+            bonds.push({ atom1, atom2, type });
             atom1.bonds.push({ atom: atom2, type });
             atom2.bonds.push({ atom: atom1, type });
         }
 
-        // Find atom at a given position
-        function findAtomAtPosition(x, y) {
-            return atoms.find(atom => isWithinRadius(atom.x, atom.y, x, y, atomRadius));
-        }
-
-        // Find the nearest atom to a given position
-        function findNearestAtom(x, y) {
-            let minDistance = Infinity;
-            let nearestAtom = null;
-
-            for (const atom of atoms) {
-                const distance = Math.sqrt((x - atom.x) ** 2 + (y - atom.y) ** 2);
-                if (distance < minDistance && distance <= 100) {
-                    minDistance = distance;
-                    nearestAtom = atom;
-                }
-            }
-
-            return nearestAtom;
-        }
-
-        // Check if two points are within a certain radius
-        function isWithinRadius(x1, y1, x2, y2, radius) {
-            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) <= radius;
-        }
-
-        // Erase an element
+        // Erase element
         function eraseElement(x, y) {
-            const atom = findAtomAtPosition(x, y);
+            const atom = findAtom(x, y);
             if (atom) {
                 atoms = atoms.filter(a => a !== atom);
                 bonds = bonds.filter(b => b.atom1 !== atom && b.atom2 !== atom);
+                return;
             }
+
+            bonds = bonds.filter(b => !isWithinLine(x, y, b.atom1, b.atom2));
         }
 
-        // Draw the canvas
+        // Find atom at position
+        function findAtom(x, y) {
+            return atoms.find(a => Math.hypot(a.x - x, a.y - y) < 15);
+        }
+
+        // Find nearest atom
+        function findNearestAtom(atom) {
+            return atoms.reduce((nearest, a) => {
+                const distance = Math.hypot(a.x - atom.x, a.y - atom.y);
+                return (!nearest || (distance < nearest.distance && distance > 0))
+                    ? { atom: a, distance } : nearest;
+            }, null)?.atom;
+        }
+
+        // Check if a point is on a bond line
+        function isWithinLine(x, y, atom1, atom2) {
+            const distance = Math.abs((atom2.y - atom1.y) * x - (atom2.x - atom1.x) * y + atom2.x * atom1.y - atom2.y * atom1.x)
+                / Math.hypot(atom2.x - atom1.x, atom2.y - atom1.y);
+            return distance < 5;
+        }
+
+        // Draw canvas
         function drawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw bonds
             bonds.forEach(bond => {
-                const { atom1, atom2, type } = bond;
                 ctx.beginPath();
-                ctx.moveTo(atom1.x, atom1.y);
-                ctx.lineTo(atom2.x, atom2.y);
-                ctx.lineWidth = type === 1 ? 2 : type === 2 ? 4 : 6;
+                ctx.moveTo(bond.atom1.x, bond.atom1.y);
+                ctx.lineTo(bond.atom2.x, bond.atom2.y);
+                ctx.lineWidth = bond.type === 'single' ? 2 : bond.type === 'double' ? 4 : 6;
                 ctx.strokeStyle = 'black';
                 ctx.stroke();
             });
 
-            // Draw atoms
             atoms.forEach(atom => {
                 ctx.beginPath();
-                ctx.arc(atom.x, atom.y, atomRadius, 0, Math.PI * 2);
+                ctx.arc(atom.x, atom.y, 15, 0, Math.PI * 2);
                 ctx.fillStyle = 'white';
                 ctx.fill();
                 ctx.strokeStyle = 'black';
@@ -214,41 +196,32 @@
             });
         }
 
-        // Generate SMILES from the molecular structure
-        function generateSMILES() {
-            const visited = new Set();
-            const smilesParts = [];
-
-            function dfs(atom, parent) {
-                if (visited.has(atom)) return;
-                visited.add(atom);
-
-                smilesParts.push(atom.element);
-
-                atom.bonds.forEach(bond => {
-                    if (bond.atom === parent) return;
-
-                    const bondSymbol =
-                        bond.type === 1 ? '-' : bond.type === 2 ? '=' : '#';
-                    smilesParts.push(bondSymbol);
-                    dfs(bond.atom, atom);
-                });
-            }
-
-            if (atoms.length) dfs(atoms[0], null);
-            return smilesParts.join('');
-        }
-
-        // Validate the molecule
+        // Validate molecule
         function checkMolecule() {
-            const studentSMILES = generateSMILES();
-            const resultMessage = document.getElementById('resultMessage');
+            const atomCounts = atoms.reduce((counts, atom) => {
+                counts[atom.element] = (counts[atom.element] || 0) + 1;
+                return counts;
+            }, {});
 
-            if (studentSMILES === teacherSMILES) {
-                resultMessage.textContent = "Correct! The molecule matches the teacher's input.";
+            const bondMatches = bonds.every(bond => {
+                return correctStructure.bonds.some(correctBond => {
+                    const sameAtoms = (bond.atom1.element === correctBond.atom1 && bond.atom2.element === correctBond.atom2) ||
+                                     (bond.atom1.element === correctBond.atom2 && bond.atom2.element === correctBond.atom1);
+                    return sameAtoms && bond.type === correctBond.type;
+                });
+            });
+
+            const isValid = JSON.stringify(atomCounts) === JSON.stringify(correctStructure.atoms) && bondMatches;
+
+            const resultMessage = document.getElementById('resultMessage');
+            if (isValid) {
+                resultMessage.textContent = "Correct! The molecule is valid.";
                 resultMessage.style.color = "green";
+                if (window.parent && window.parent.H5P) {
+                    window.parent.H5P.instances[0].trigger('xAPICompleted', { score: 1 });
+                }
             } else {
-                resultMessage.textContent = `Incorrect. Your SMILES: ${studentSMILES}`;
+                resultMessage.textContent = "Incorrect. Please revise the molecule.";
                 resultMessage.style.color = "red";
             }
         }
