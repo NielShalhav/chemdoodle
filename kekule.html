@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw Methanol with Kekule.js</title>
+    <!-- Load Kekule.js from CDN -->
+    <script src="https://unpkg.com/kekule/dist/kekule.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/kekule/dist/themes/default/kekule.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #sketcher {
+            margin: 0 auto;
+            width: 600px;
+            height: 400px;
+            border: 1px solid #ddd;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #resultMessage {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Draw the Structural Formula for Methanol (CH₃OH)</h2>
+    <div id="sketcher"></div>
+    <button id="checkButton">Check Formula</button>
+    <p id="resultMessage"></p>
+
+    <script>
+        // Initialize the Kekule.js sketcher
+        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'));
+        composer.setDimension('600px', '400px');
+
+        // Expected SMILES string for methanol
+        const expectedSmiles = "CO";
+
+        // Add event listener for the "Check Formula" button
+        document.getElementById("checkButton").addEventListener("click", async function () {
+            const resultMessage = document.getElementById("resultMessage");
+
+            try {
+                // Get the drawn molecule as SMILES
+                const chemObj = composer.getChemObj();
+                const drawnSmiles = Kekule.IO.saveFormatData(chemObj, 'smi');
+
+                // Compare the drawn SMILES to the expected SMILES
+                if (drawnSmiles.trim() === expectedSmiles) {
+                    resultMessage.textContent = "Correct! You drew methanol.";
+                    resultMessage.style.color = "green";
+                } else {
+                    resultMessage.textContent = `Incorrect. Try again!`;
+                    resultMessage.style.color = "red";
+                }
+            } catch (error) {
+                console.error("Error exporting structure:", error);
+                resultMessage.textContent = "Please draw a molecule first!";
+                resultMessage.style.color = "orange";
+            }
+        });
+    </script>
+</body>
+</html>
