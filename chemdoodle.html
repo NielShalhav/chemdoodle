@@ -5,13 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://web.chemdoodle.com/ChemDoodleWeb.js"></script>
     <link rel="stylesheet" href="https://web.chemdoodle.com/ChemDoodleWeb.css">
-    <title>ChemDoodle Sketcher</title>
+    <title>ChemDoodle - Methanol Checker</title>
 </head>
 <body>
-    <h3>Draw the Structural Formula</h3>
+    <h3>Draw the structural formula for methanol (CH₃OH)</h3>
     <canvas id="sketcherCanvas" width="500" height="300"></canvas>
+    <button id="checkButton">Check Formula</button>
+    <p id="resultMessage"></p>
+
     <script>
+        // Initialize the ChemDoodle sketcher canvas
         var sketcher = new ChemDoodle.SketcherCanvas('sketcherCanvas', 500, 300);
+
+        // Expected SMILES string for methanol
+        var expectedSMILES = "CO"; // Methanol (CH₃OH) in SMILES notation
+
+        // Validation logic
+        document.getElementById('checkButton').addEventListener('click', function () {
+            var drawnSMILES = sketcher.getMolecule().toSMILES(); // Get the SMILES string of the drawn molecule
+            var resultMessage = document.getElementById('resultMessage');
+
+            if (drawnSMILES === expectedSMILES) {
+                resultMessage.textContent = "Correct! You drew methanol.";
+                resultMessage.style.color = "green";
+            } else {
+                resultMessage.textContent = "Incorrect. Try again!";
+                resultMessage.style.color = "red";
+            }
+        });
     </script>
 </body>
 </html>
