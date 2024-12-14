@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Molecule Editor</title>
+    <title>Teken een CH4O molecuul</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -42,14 +42,14 @@
     <h2>Molecule Editor</h2>
     <canvas id="canvas" width="800" height="600"></canvas>
     <div class="controls">
-        <button id="singleBond" data-mode="single">Single Bond</button>
-        <button id="doubleBond" data-mode="double">Double Bond</button>
-        <button id="tripleBond" data-mode="triple">Triple Bond</button>
-        <button id="eraser" data-mode="erase">Eraser</button>
-        <button id="checkButton">Check Molecule</button>
+        <button id="singleBond" data-mode="single">Enkele binding</button>
+        <button id="doubleBond" data-mode="double">Dubbele binding</button>
+        <button id="tripleBond" data-mode="triple">Driedubbele binding</button>
+        <button id="eraser" data-mode="erase">Gum</button>
+        <button id="checkButton">Controleer</button>
     </div>
     <div class="atom-selector">
-        <label for="atom">Select Atom:</label>
+        <label for="atom">Selecteer Atoom:</label>
         <select id="atom">
             <option value="H">H</option>
             <option value="C">C</option>
@@ -75,6 +75,7 @@
                 { atom1: 'C', atom2: 'H', type: 'single' },
                 { atom1: 'C', atom2: 'H', type: 'single' },
                 { atom1: 'C', atom2: 'H', type: 'single' },
+                { atom1: 'O', atom2: 'H', type: 'single' },
             ]
         };
 
@@ -215,10 +216,10 @@
 
             const resultMessage = document.getElementById('resultMessage');
             if (isValid) {
-                resultMessage.textContent = "Correct! The molecule is valid.";
+                resultMessage.textContent = "Correct! Dit is het molecuul.";
                 resultMessage.style.color = "green";
             } else {
-                resultMessage.textContent = "Incorrect. Please revise the molecule.";
+                resultMessage.textContent = "Incorrect. Pas je structuur aan.";
                 resultMessage.style.color = "red";
             }
         }
