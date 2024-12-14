@@ -123,6 +123,7 @@
 
         // Add an atom
         function addAtom(x, y, element) {
+            if (findAtomAtPosition(x, y)) return; // Prevent overlapping atoms
             atoms.push({ x, y, element, bonds: [] });
         }
 
@@ -136,8 +137,8 @@
             const bondX = atom.x + Math.cos(angle) * 50;
             const bondY = atom.y + Math.sin(angle) * 50;
 
-            // Add a new atom at the bond's end
-            const newAtom = { x: bondX, y: bondY, element: 'C', bonds: [] };
+            // Reserve space for the new atom
+            const newAtom = { x: bondX, y: bondY, element: '', bonds: [] };
             atoms.push(newAtom);
 
             // Link both atoms with the bond
@@ -173,35 +174,56 @@
 
             // Draw bonds
             bonds.forEach(bond => {
+                const { atom1, atom2, type } = bond;
+                const dx = atom2.x - atom1.x;
+                const dy = atom2.y - atom1.y;
+                const angle = Math.atan2(dy, dx);
+
                 ctx.beginPath();
-                ctx.moveTo(bond.atom1.x, bond.atom1.y);
-                ctx.lineTo(bond.atom2.x, bond.atom2.y);
-                ctx.lineWidth = bond.type === 'single' ? 2 : bond.type === 'double' ? 4 : 6;
+                ctx.moveTo(atom1.x, atom1.y);
+                ctx.lineTo(atom2.x, atom2.y);
+                ctx.lineWidth = type === 'single' ? 2 : type === 'double' ? 4 : 6;
                 ctx.strokeStyle = 'black';
                 ctx.stroke();
+
+                // For double and triple bonds, draw parallel lines
+                if (type === 'double' || type === 'triple') {
+                    const offset = type === 'double' ? 5 : 10;
+                    ctx.beginPath();
+                    ctx.moveTo(atom1.x + Math.sin(angle) * offset, atom1.y - Math.cos(angle) * offset);
+                    ctx.lineTo(atom2.x + Math.sin(angle) * offset, atom2.y - Math.cos(angle) * offset);
+                    ctx.stroke();
+                    if (type === 'triple') {
+                        ctx.beginPath();
+                        ctx.moveTo(atom1.x - Math.sin(angle) * offset, atom1.y + Math.cos(angle) * offset);
+                        ctx.lineTo(atom2.x - Math.sin(angle) * offset, atom2.y + Math.cos(angle) * offset);
+                        ctx.stroke();
+                    }
+                }
             });
 
             // Draw atoms
             atoms.forEach(atom => {
                 ctx.beginPath();
                 ctx.arc(atom.x, atom.y, atomRadius, 0, Math.PI * 2);
-                ctx.fillStyle = 'white';
+                ctx.fillStyle = atom.element ? 'white' : 'lightgray';
                 ctx.fill();
                 ctx.strokeStyle = 'black';
                 ctx.stroke();
-                ctx.fillStyle = 'black';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.font = '16px Arial';
-                ctx.fillText(atom.element, atom.x, atom.y);
+                if (atom.element) {
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = '16px Arial';
+                    ctx.fillText(atom.element, atom.x, atom.y);
+                }
             });
         }
 
         // Convert molecule to SMILES and validate
         function checkMolecule() {
             const resultMessage = document.getElementById('resultMessage');
-            // Placeholder: Replace with real SMILES conversion logic
-            const studentSMILES = "CO"; // Replace this with logic to generate SMILES from atoms/bonds.
+            const studentSMILES = generateSMILES();
             if (studentSMILES === teacherSMILES) {
                 resultMessage.textContent = "Correct! The molecule matches the teacher's input.";
                 resultMessage.style.color = "green";
@@ -209,6 +231,11 @@
                 resultMessage.textContent = "Incorrect. Please revise the molecule.";
                 resultMessage.style.color = "red";
             }
+        }
+
+        // Generate SMILES (Placeholder logic; implement a real algorithm here)
+        function generateSMILES() {
+            return atoms.map(atom => atom.element).join('');
         }
 
         drawCanvas();
