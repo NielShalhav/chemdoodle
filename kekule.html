@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Draw Methanol</title>
-    <!-- Load OpenChemLib JS -->
-    <script src="https://unpkg.com/openchemlib/full.js"></script>
+    <!-- Load OpenChemLib Structure Editor -->
+    <script src="https://unpkg.com/openchemlib@latest/dist/openchemlib.min.js"></script>
+    <script src="https://unpkg.com/openchemlib-utils@latest/dist/openchemlib-utils.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,11 +48,11 @@
         // Initialize OpenChemLib molecule editor
         const editor = new OCL.StructureEditor('#editorContainer', {
             width: 600,
-            height: 400
+            height: 400,
         });
 
         // Expected SMILES for methanol
-        const expectedSmiles = "CO";
+        const expectedSmiles = "CO"; // Methanol in SMILES notation
 
         // Add event listener for the "Check Formula" button
         document.getElementById("checkButton").addEventListener("click", function () {
