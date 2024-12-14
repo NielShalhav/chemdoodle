@@ -3,33 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draw CH4O</title>
-    <!-- Load OpenChemLib Structure Editor -->
-    <script src="https://cdn.jsdelivr.net/npm/openchemlib@latest/dist/openchemlib-full.min.js"></script>
+    <title>Simple Molecule Editor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             margin: 20px;
         }
-        #editorContainer {
+        #canvas {
+            border: 1px solid black;
+            display: block;
             margin: 0 auto;
-            width: 600px;
-            height: 400px;
-            border: 1px solid #ddd;
         }
-        button {
-            margin-top: 20px;
-            padding: 10px 20px;
+        .controls {
+            margin: 20px 0;
+        }
+        .controls button {
+            margin: 0 5px;
+            padding: 10px 15px;
             font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
         }
-        button:hover {
-            background-color: #45a049;
+        .atom-selector {
+            margin: 20px 0;
         }
         #resultMessage {
             margin-top: 20px;
@@ -38,44 +34,164 @@
     </style>
 </head>
 <body>
-    <h2>Draw Methanol (CH₃OH)</h2>
-    <div id="editorContainer"></div>
-    <button id="checkButton">Check Formula</button>
+    <h2>Simple Molecule Editor</h2>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="controls">
+        <button id="singleBond">Single Bond</button>
+        <button id="doubleBond">Double Bond</button>
+        <button id="tripleBond">Triple Bond</button>
+        <button id="eraser">Eraser</button>
+        <button id="checkButton">Check Molecule</button>
+    </div>
+    <div class="atom-selector">
+        <label for="atom">Select Atom:</label>
+        <select id="atom">
+            <option value="H">H</option>
+            <option value="C">C</option>
+            <option value="O">O</option>
+            <option value="N">N</option>
+            <option value="F">F</option>
+            <option value="Cl">Cl</option>
+            <option value="Br">Br</option>
+            <option value="I">I</option>
+            <option value="S">S</option>
+            <!-- Add other atoms as needed -->
+        </select>
+    </div>
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize OpenChemLib molecule editor
-        const editor = new OCL.StructureEditor('#editorContainer', {
-            width: 600,
-            height: 400,
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let drawingMode = 'atom'; // Modes: atom, single, double, triple, erase
+        let selectedAtom = 'C';
+        let atoms = []; // Store atom positions
+        let bonds = []; // Store bonds
+
+        // Atom radius
+        const atomRadius = 15;
+
+        // Event listeners for controls
+        document.getElementById('atom').addEventListener('change', (e) => {
+            selectedAtom = e.target.value;
+            drawingMode = 'atom';
         });
+        document.getElementById('singleBond').addEventListener('click', () => drawingMode = 'single');
+        document.getElementById('doubleBond').addEventListener('click', () => drawingMode = 'double');
+        document.getElementById('tripleBond').addEventListener('click', () => drawingMode = 'triple');
+        document.getElementById('eraser').addEventListener('click', () => drawingMode = 'erase');
+        document.getElementById('checkButton').addEventListener('click', checkMolecule);
 
-        // Expected SMILES for methanol
-        const expectedSmiles = "CO"; // Methanol in SMILES notation
+        // Event listener for canvas interaction
+        canvas.addEventListener('click', (e) => {
+            const x = e.offsetX;
+            const y = e.offsetY;
 
-        // Add event listener for the "Check Formula" button
-        document.getElementById("checkButton").addEventListener("click", function () {
-            const resultMessage = document.getElementById("resultMessage");
-
-            try {
-                // Get the drawn molecule as SMILES
-                const mol = editor.getMolecule();
-                const drawnSmiles = mol.toSmiles();
-
-                // Compare the drawn SMILES to the expected SMILES
-                if (drawnSmiles.trim() === expectedSmiles) {
-                    resultMessage.textContent = "Correct! You drew methanol.";
-                    resultMessage.style.color = "green";
-                } else {
-                    resultMessage.textContent = "Incorrect. Ensure the structure matches CH₃OH.";
-                    resultMessage.style.color = "red";
-                }
-            } catch (error) {
-                console.error("Error exporting structure:", error);
-                resultMessage.textContent = "Please draw a molecule first!";
-                resultMessage.style.color = "orange";
+            if (drawingMode === 'atom') {
+                addAtom(x, y, selectedAtom);
+            } else if (drawingMode === 'erase') {
+                eraseElement(x, y);
+            } else {
+                addBond(x, y, drawingMode);
             }
+
+            drawCanvas();
         });
+
+        // Add an atom
+        function addAtom(x, y, element) {
+            atoms.push({ x, y, element });
+        }
+
+        // Add a bond
+        function addBond(x, y, type) {
+            const atom1 = findAtomAtPosition(x, y);
+            if (!atom1) return;
+
+            const atom2 = findNearestAtom(atom1);
+            if (!atom2) return;
+
+            bonds.push({ atom1, atom2, type });
+        }
+
+        // Erase an element
+        function eraseElement(x, y) {
+            atoms = atoms.filter(atom => !isWithinRadius(atom.x, atom.y, x, y, atomRadius));
+            bonds = bonds.filter(bond => {
+                return !(
+                    isWithinRadius(bond.atom1.x, bond.atom1.y, x, y, atomRadius) ||
+                    isWithinRadius(bond.atom2.x, bond.atom2.y, x, y, atomRadius)
+                );
+            });
+        }
+
+        // Find atom at a given position
+        function findAtomAtPosition(x, y) {
+            return atoms.find(atom => isWithinRadius(atom.x, atom.y, x, y, atomRadius));
+        }
+
+        // Find the nearest atom to a given atom
+        function findNearestAtom(atom) {
+            let nearest = null;
+            let minDistance = Infinity;
+
+            atoms.forEach(otherAtom => {
+                if (otherAtom !== atom) {
+                    const distance = Math.sqrt((atom.x - otherAtom.x) ** 2 + (atom.y - otherAtom.y) ** 2);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearest = otherAtom;
+                    }
+                }
+            });
+
+            return minDistance <= 100 ? nearest : null;
+        }
+
+        // Check if two points are within a certain radius
+        function isWithinRadius(x1, y1, x2, y2, radius) {
+            return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) <= radius;
+        }
+
+        // Draw the canvas
+        function drawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw bonds
+            bonds.forEach(bond => {
+                ctx.beginPath();
+                ctx.moveTo(bond.atom1.x, bond.atom1.y);
+                ctx.lineTo(bond.atom2.x, bond.atom2.y);
+                ctx.lineWidth = bond.type === 'single' ? 2 : bond.type === 'double' ? 4 : 6;
+                ctx.strokeStyle = 'black';
+                ctx.stroke();
+            });
+
+            // Draw atoms
+            atoms.forEach(atom => {
+                ctx.beginPath();
+                ctx.arc(atom.x, atom.y, atomRadius, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.strokeStyle = 'black';
+                ctx.stroke();
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = '16px Arial';
+                ctx.fillText(atom.element, atom.x, atom.y);
+            });
+        }
+
+        // Validate the molecule
+        function checkMolecule() {
+            const resultMessage = document.getElementById('resultMessage');
+            // Placeholder: Replace with actual validation logic
+            resultMessage.textContent = "Molecule validation is not yet implemented.";
+            resultMessage.style.color = "blue";
+        }
+
+        drawCanvas();
     </script>
 </body>
 </html>
