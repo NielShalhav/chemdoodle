@@ -45,11 +45,11 @@
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize Kekule.js molecule sketcher
-        const sketcher = new Kekule.ChemWidget.MolSketcher(document.getElementById('sketcher'));
+        // Initialize Kekule.js molecule composer
+        const sketcher = new Kekule.Editor.MoleculeComposer(document.getElementById('sketcher'));
         sketcher.setDimension('600px', '400px');
 
-        // Expected SMILES for methanol with explicit atoms
+        // Expected SMILES for methanol with explicit atoms and bonds
         const expectedSmiles = "[H]C([H])([H])O[H]";
 
         // Event listener for the "Check Formula" button
