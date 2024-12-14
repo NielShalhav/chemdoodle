@@ -39,34 +39,18 @@
     </style>
 </head>
 <body>
-    <h2>Draw Methanol with Explicit Bonds and Atoms</h2>
+    <h2>Draw Methanol with Explicit Atoms and Bonds</h2>
     <div id="sketcher"></div>
     <button id="checkButton">Check Formula</button>
     <p id="resultMessage"></p>
 
     <script>
-        // Initialize Kekule.js molecule composer with explicit atom and bond settings
-        const composer = new Kekule.Editor.Composer(document.getElementById('sketcher'), {
-            allowImplicitHydrogens: false, // Force explicit hydrogens
-            chemObjLoadedCallback: function () {
-                console.log('Sketcher initialized with custom settings.');
-            }
-        });
+        // Initialize Kekule.js molecule sketcher
+        const sketcher = new Kekule.ChemWidget.MolSketcher(document.getElementById('sketcher'));
+        sketcher.setDimension('600px', '400px');
 
-        // Set the dimensions of the sketcher
-        composer.setDimension('600px', '400px');
-
-        // Force explicit carbon and hydrogen display
-        composer.getEditorConfigs().setConfigs({
-            enableImplicitHydrogens: false, // Disable implied hydrogens
-            enableExplicitValence: true, // Display explicit valence
-            enableAtomStereoParity: false, // Disable stereochemistry for atoms
-            enableBondStereo: false, // Disable stereochemistry for bonds
-            displayAtomExplicitly: true, // Force display of carbon and hydrogen atoms
-        });
-
-        // Expected SMILES for methanol with explicit hydrogens and carbons
-        const expectedSmiles = "[H]C([H])([H])O[H]"; // Methanol explicitly written with hydrogens
+        // Expected SMILES for methanol with explicit atoms
+        const expectedSmiles = "[H]C([H])([H])O[H]";
 
         // Event listener for the "Check Formula" button
         document.getElementById("checkButton").addEventListener("click", function () {
@@ -74,7 +58,7 @@
 
             try {
                 // Get the drawn molecule as SMILES
-                const chemObj = composer.getChemObj();
+                const chemObj = sketcher.getChemObj();
                 const drawnSmiles = Kekule.IO.saveFormatData(chemObj, 'smi');
 
                 // Compare the drawn SMILES to the expected SMILES
@@ -82,7 +66,7 @@
                     resultMessage.textContent = "Correct! You drew methanol explicitly.";
                     resultMessage.style.color = "green";
                 } else {
-                    resultMessage.textContent = `Incorrect. Ensure all atoms and bonds are explicit!`;
+                    resultMessage.textContent = "Incorrect. Ensure all atoms and bonds are explicit!";
                     resultMessage.style.color = "red";
                 }
             } catch (error) {
