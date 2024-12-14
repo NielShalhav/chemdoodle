@@ -60,7 +60,6 @@
             <option value="Br">Br</option>
             <option value="I">I</option>
             <option value="S">S</option>
-            <!-- Add other atoms as needed -->
         </select>
     </div>
     <p id="resultMessage"></p>
@@ -111,7 +110,7 @@
             const y = e.offsetY;
 
             if (drawingMode === 'atom') {
-                addAtom(x, y, selectedAtom);
+                addOrReplaceAtom(x, y, selectedAtom);
             } else if (drawingMode === 'erase') {
                 eraseElement(x, y);
             } else {
@@ -121,10 +120,14 @@
             drawCanvas();
         });
 
-        // Add an atom
-        function addAtom(x, y, element) {
-            if (findAtomAtPosition(x, y)) return; // Prevent overlapping atoms
-            atoms.push({ x, y, element, bonds: [] });
+        // Add or replace an atom
+        function addOrReplaceAtom(x, y, element) {
+            const atom = findAtomAtPosition(x, y);
+            if (atom) {
+                atom.element = element; // Replace the placeholder or existing atom
+            } else {
+                atoms.push({ x, y, element, bonds: [] });
+            }
         }
 
         // Add a bond to an atom
