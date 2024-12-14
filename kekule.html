@@ -107,7 +107,7 @@
             const y = e.offsetY;
 
             if (activeMode === null) {
-                addAtom(x, y, selectedAtom);
+                addOrReplaceAtom(x, y, selectedAtom);
             } else if (activeMode === 'erase') {
                 eraseElement(x, y);
             } else {
@@ -117,10 +117,14 @@
             drawCanvas();
         });
 
-        // Add atom
-        function addAtom(x, y, element) {
-            if (findAtom(x, y)) return; // Prevent overlapping atoms
-            atoms.push({ x, y, element, bonds: [] });
+        // Add or replace an atom
+        function addOrReplaceAtom(x, y, element) {
+            const atom = findAtom(x, y);
+            if (atom && atom.element === '') {
+                atom.element = element; // Replace placeholder atom
+            } else if (!atom) {
+                atoms.push({ x, y, element, bonds: [] });
+            }
         }
 
         // Add bond
@@ -213,9 +217,6 @@
             if (isValid) {
                 resultMessage.textContent = "Correct! The molecule is valid.";
                 resultMessage.style.color = "green";
-                if (window.parent && window.parent.H5P) {
-                    window.parent.H5P.instances[0].trigger('xAPICompleted', { score: 1 });
-                }
             } else {
                 resultMessage.textContent = "Incorrect. Please revise the molecule.";
                 resultMessage.style.color = "red";
