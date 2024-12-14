@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teken een CH<sub>4</sub>O molecuul</title>
+    <title>Molecule Builder</title>
+    <script src="https://unpkg.com/kekule/dist/kekule.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            margin: 20px;
         }
-        #canvas {
-            border: 1px solid black;
-            display: block;
-            margin: 0 auto;
-            cursor: pointer;
+        #editor-container {
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            width: 800px;
+            height: 600px;
         }
-        .controls {
+        #controls {
             margin: 20px 0;
         }
         .controls button {
@@ -25,13 +25,6 @@
             font-size: 16px;
             cursor: pointer;
         }
-        .controls button.active {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .atom-selector {
-            margin: 20px 0;
-        }
         #resultMessage {
             margin-top: 20px;
             font-size: 18px;
@@ -39,194 +32,36 @@
     </style>
 </head>
 <body>
-    <h2>Teken een CH<sub>4</sub>O molecuul</h2>
-    <canvas id="canvas" width="800" height="600"></canvas>
-    <div class="controls">
-        <button id="singleBond" data-mode="single">Enkele binding</button>
-        <button id="doubleBond" data-mode="double">Dubbele binding</button>
-        <button id="tripleBond" data-mode="triple">Driedubbele binding</button>
-        <button id="eraser" data-mode="erase">Gum</button>
-        <button id="checkButton">Controleer</button>
-    </div>
-    <div class="atom-selector">
-        <label for="atom">Selecteer Atoom:</label>
-        <select id="atom">
-            <option value="H">H</option>
-            <option value="C">C</option>
-            <option value="O">O</option>
-            <option value="N">N</option>
-        </select>
+    <h2>Interactive Molecule Builder</h2>
+    <div id="editor-container"></div>
+    <div id="controls">
+        <button id="checkButton">Validate Molecule</button>
     </div>
     <p id="resultMessage"></p>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let activeMode = null; // Modes: 'single', 'double', 'triple', 'erase'
-        let selectedAtom = 'C';
-        let atoms = [];
-        let bonds = [];
+        // Initialize Kekulé.js Molecule Editor
+        const editor = new Kekule.Editor.MolSketcher(document.getElementById('editor-container'));
+        editor.setEnableAtomTool(true);
+        editor.setEnableBondTool(true);
 
-        // Teacher-defined correct molecule structure
-        const correctStructure = {
-            atoms: { C: 1, O: 1, H: 4 },
-            bonds: [
-                { atom1: 'C', atom2: 'O', type: 'single' },
-                { atom1: 'C', atom2: 'H', type: 'single' },
-                { atom1: 'C', atom2: 'H', type: 'single' },
-                { atom1: 'C', atom2: 'H', type: 'single' },
-                { atom1: 'O', atom2: 'H', type: 'single' }
-            ]
-        };
+        // Teacher-defined correct molecule structure (SMILES for CH4O)
+        const correctSmiles = "CO";
 
-        // Event listeners for controls
-        document.querySelectorAll('.controls button').forEach(button => {
-            button.addEventListener('click', () => toggleMode(button));
-        });
-
-        document.getElementById('atom').addEventListener('change', (e) => {
-            selectedAtom = e.target.value;
-        });
-
-        document.getElementById('checkButton').addEventListener('click', checkMolecule);
-
-        // Toggle button mode
-        function toggleMode(button) {
-            if (button.classList.contains('active')) {
-                button.classList.remove('active');
-                activeMode = null;
-            } else {
-                document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                activeMode = button.dataset.mode;
-            }
-        }
-
-        // Event listener for canvas interaction
-        canvas.addEventListener('click', (e) => {
-            const x = e.offsetX;
-            const y = e.offsetY;
-
-            if (activeMode === null) {
-                addOrReplaceAtom(x, y, selectedAtom);
-            } else if (activeMode === 'erase') {
-                eraseElement(x, y);
-            } else {
-                addBond(x, y, activeMode);
-            }
-
-            drawCanvas();
-        });
-
-        // Add or replace an atom
-        function addOrReplaceAtom(x, y, element) {
-            const atom = findAtom(x, y);
-            if (atom && atom.element === '') {
-                atom.element = element; // Replace placeholder atom
-            } else if (!atom) {
-                atoms.push({ x, y, element, bonds: [] });
-            }
-        }
-
-        // Add bond
-        function addBond(x, y, type) {
-            const atom1 = findAtom(x, y);
-            if (!atom1) return;
-
-            const angle = Math.PI * 2 * (atom1.bonds.length % 4) / 4; // Distribute bonds evenly
-            const bondX = atom1.x + Math.cos(angle) * 50;
-            const bondY = atom1.y + Math.sin(angle) * 50;
-
-            if (findAtom(bondX, bondY)) return; // Prevent overlapping atoms
-
-            const newAtom = { x: bondX, y: bondY, element: '', bonds: [] };
-            atoms.push(newAtom);
-
-            bonds.push({ atom1, atom2: newAtom, type });
-            atom1.bonds.push({ atom: newAtom, type });
-            newAtom.bonds.push({ atom: atom1, type });
-        }
-
-        // Erase element
-        function eraseElement(x, y) {
-            const atom = findAtom(x, y);
-            if (atom) {
-                atoms = atoms.filter(a => a !== atom);
-                bonds = bonds.filter(b => b.atom1 !== atom && b.atom2 !== atom);
-                return;
-            }
-
-            bonds = bonds.filter(b => !isWithinLine(x, y, b.atom1, b.atom2));
-        }
-
-        // Find atom at position
-        function findAtom(x, y) {
-            return atoms.find(a => Math.hypot(a.x - x, a.y - y) < 15);
-        }
-
-        // Check if a point is on a bond line
-        function isWithinLine(x, y, atom1, atom2) {
-            const distance = Math.abs((atom2.y - atom1.y) * x - (atom2.x - atom1.x) * y + atom2.x * atom1.y - atom2.y * atom1.x)
-                / Math.hypot(atom2.x - atom1.x, atom2.y - atom1.y);
-            return distance < 5;
-        }
-
-        // Draw canvas
-        function drawCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            bonds.forEach(bond => {
-                ctx.beginPath();
-                ctx.moveTo(bond.atom1.x, bond.atom1.y);
-                ctx.lineTo(bond.atom2.x, bond.atom2.y);
-                ctx.lineWidth = bond.type === 'single' ? 2 : bond.type === 'double' ? 4 : 6;
-                ctx.strokeStyle = 'black';
-                ctx.stroke();
-            });
-
-            atoms.forEach(atom => {
-                ctx.beginPath();
-                ctx.arc(atom.x, atom.y, 15, 0, Math.PI * 2);
-                ctx.fillStyle = atom.element ? 'white' : 'lightgray';
-                ctx.fill();
-                ctx.strokeStyle = 'black';
-                ctx.stroke();
-                ctx.fillStyle = 'black';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.font = '16px Arial';
-                ctx.fillText(atom.element, atom.x, atom.y);
-            });
-        }
-
-        // Validate molecule
-        function checkMolecule() {
-            const atomCounts = atoms.reduce((counts, atom) => {
-                counts[atom.element] = (counts[atom.element] || 0) + 1;
-                return counts;
-            }, {});
-
-            const bondMatches = bonds.every(bond => {
-                return correctStructure.bonds.some(correctBond => {
-                    const sameAtoms = (bond.atom1.element === correctBond.atom1 && bond.atom2.element === correctBond.atom2) ||
-                                     (bond.atom1.element === correctBond.atom2 && bond.atom2.element === correctBond.atom1);
-                    return sameAtoms && bond.type === correctBond.type;
-                });
-            });
-
-            const isValid = JSON.stringify(atomCounts) === JSON.stringify(correctStructure.atoms) && bondMatches;
-
+        // Validate the molecule structure
+        document.getElementById('checkButton').addEventListener('click', () => {
+            const molecule = editor.getChemObj(); // Get molecule object
+            const smiles = Kekule.IO.saveFormatData(molecule, 'smiles'); // Generate SMILES
             const resultMessage = document.getElementById('resultMessage');
-            if (isValid) {
-                resultMessage.textContent = "Correct! Dit is het molecuul.";
+
+            if (smiles === correctSmiles) {
+                resultMessage.textContent = "Correct! The molecule is valid.";
                 resultMessage.style.color = "green";
             } else {
-                resultMessage.textContent = "Incorrect. Pas je structuur aan.";
+                resultMessage.textContent = `Incorrect. Your SMILES: ${smiles}`;
                 resultMessage.style.color = "red";
             }
-        }
-
-        drawCanvas();
+        });
     </script>
 </body>
 </html>
